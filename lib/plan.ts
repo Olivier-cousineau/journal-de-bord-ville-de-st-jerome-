@@ -38,12 +38,35 @@ function includesKeyword(text: string, keyword: string) {
   return normalize(text).includes(normalize(keyword));
 }
 
+function hasAlreadyDoneComment(commentaires: string) {
+  const normalizedComments = normalize(commentaires);
+  const alreadyDoneTerms = ['deja faite', 'déjà faite', 'deja fait', 'déjà fait'];
+
+  const containsAlreadyDone = alreadyDoneTerms.some((term) => normalizedComments.includes(normalize(term)));
+  const containsContext = ['livrer', 'livré', 'nom'].some((term) => normalizedComments.includes(normalize(term)));
+
+  return containsAlreadyDone && containsContext;
+}
+
+function hasExecutableNumber(commentaires: string) {
+  return /\b\d{2,3}[- ]\d{2}\b/.test(commentaires);
+}
+
 function isReady(row: CsvRow, dataset: ImportedDataset) {
   const pieceRecue = row[dataset.mapping.pieceRecue] ?? '';
   const piecesInstallees = row[dataset.mapping.piecesInstallees] ?? '';
+  const commentaires = row[dataset.mapping.commentaires] ?? '';
 
   const installedValue = normalize(piecesInstallees);
   const isFalse = falseValues.includes(installedValue);
+
+  if (hasAlreadyDoneComment(commentaires)) {
+    return false;
+  }
+
+  if (hasExecutableNumber(commentaires)) {
+    return true;
+  }
 
   return pieceRecue.trim().length > 0 && isFalse;
 }
