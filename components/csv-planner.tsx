@@ -121,8 +121,10 @@ export function CsvPlanner() {
       complete: async (result) => {
         await processParsedResult(result, file.name);
       },
-      error: (error) => {
-        setStatus(`Erreur d'import CSV: ${error.message}`);
+      error: (error: unknown) => {
+        const msg =
+          error instanceof Error ? error.message : typeof error === 'string' ? error : 'Erreur inconnue';
+        setStatus(`Erreur d'import CSV: ${msg}`);
       }
     });
   }
@@ -139,8 +141,10 @@ export function CsvPlanner() {
       complete: async (result) => {
         await processParsedResult(result, 'Texte collé');
       },
-      error: (error) => {
-        setStatus(`Erreur d'import CSV (texte collé): ${error.message}`);
+      error: (error: unknown) => {
+        const msg =
+          error instanceof Error ? error.message : typeof error === 'string' ? error : 'Erreur inconnue';
+        setStatus(`Erreur d'import CSV (texte collé): ${msg}`);
       }
     });
   }
