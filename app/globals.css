@@ -94,3 +94,13 @@ pre {
   border-radius: 8px;
   white-space: pre-wrap;
 }
+
+textarea {
+  font-size: 0.95rem;
+  padding: 9px 10px;
+  border: 1px solid #c2ccdd;
+  border-radius: 8px;
+  min-height: 140px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

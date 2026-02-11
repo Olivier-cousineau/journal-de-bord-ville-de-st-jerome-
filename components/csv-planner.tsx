@@ -52,6 +52,7 @@ export function CsvPlanner() {
   const [dataset, setDataset] = useState<ImportedDataset | null>(null);
   const [priorityConfig, setPriorityConfig] = useState<PriorityConfig>(getDefaultPriorityConfig());
   const [status, setStatus] = useState('Aucun fichier importé.');
+  const [pastedCsv, setPastedCsv] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -93,6 +94,21 @@ export function CsvPlanner() {
     mapping.piecesInstallees &&
     mapping.commentaires;
 
+  async function processParsedResult(result: Papa.ParseResult<CsvRow>, source: string) {
+    const parsedHeaders = (result.meta.fields ?? []).filter(Boolean);
+    const parsedRows = (result.data as CsvRow[]).filter((row) =>
+      Object.values(row).some((value) => String(value ?? '').trim().length > 0)
+    );
+
+    const previousMapping = await loadMapping();
+    const initialMapping = detectInitialMapping(parsedHeaders, previousMapping);
+
+    setHeaders(parsedHeaders);
+    setRows(parsedRows);
+    setMapping(initialMapping);
+    setStatus(`${source} importé. Veuillez confirmer le mapping.`);
+  }
+
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -103,21 +119,28 @@ export function CsvPlanner() {
       header: true,
       skipEmptyLines: true,
       complete: async (result) => {
-        const parsedHeaders = (result.meta.fields ?? []).filter(Boolean);
-        const parsedRows = (result.data as CsvRow[]).filter((row) =>
-          Object.values(row).some((value) => String(value ?? '').trim().length > 0)
-        );
-
-        const previousMapping = await loadMapping();
-        const initialMapping = detectInitialMapping(parsedHeaders, previousMapping);
-
-        setHeaders(parsedHeaders);
-        setRows(parsedRows);
-        setMapping(initialMapping);
-        setStatus(`${file.name} importé. Veuillez confirmer le mapping.`);
+        await processParsedResult(result, file.name);
       },
       error: (error) => {
         setStatus(`Erreur d'import CSV: ${error.message}`);
+      }
+    });
+  }
+
+  function onPasteCsvImport() {
+    if (!pastedCsv.trim()) {
+      setStatus('Collez un contenu CSV avant de lancer l’import.');
+      return;
+    }
+
+    Papa.parse<CsvRow>(pastedCsv, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (result) => {
+        await processParsedResult(result, 'Texte collé');
+      },
+      error: (error) => {
+        setStatus(`Erreur d'import CSV (texte collé): ${error.message}`);
       }
     });
   }
@@ -168,6 +191,16 @@ export function CsvPlanner() {
         <h2>1) Import CSV</h2>
         <input type="file" accept=".csv,text/csv" onChange={onFileChange} />
         <p>Analyse côté client (PapaParse). Données stockées offline dans IndexedDB.</p>
+        <label>
+          Ou coller la liste des pièces (format CSV)
+          <textarea
+            value={pastedCsv}
+            onChange={(event) => setPastedCsv(event.target.value)}
+            rows={8}
+            placeholder="UNITÉ,PIÈCE REQUISE,PIÈCE REÇUE(METTRE DATE DE RÉCEPTION),PIÈCES INSTALLÉES,COMMENTAIRES"
+          />
+        </label>
+        <button onClick={onPasteCsvImport}>Importer le texte collé</button>
       </section>
 
       {headers.length > 0 && (
